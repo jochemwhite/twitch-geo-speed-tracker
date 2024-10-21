@@ -12,6 +12,7 @@ type Speed = number | 'Speed not available' | null;
 interface GeolocationState {
   location: Location | null;
   speed: Speed;
+  distance: number; // Distance walked in km
   error: string | null;
 }
 
@@ -22,10 +23,23 @@ const interpretAccuracy = (accuracy: number): string => {
   return 'Poor (likely indoors or obstructed)';
 };
 
+const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const R = 6371; // Earth's radius in km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+};
+
 const GeolocationSpeed: React.FC = () => {
   const [state, setState] = useState<GeolocationState>({
     location: null,
     speed: null,
+    distance: 0, // Initialize distance
     error: null,
   });
 
@@ -36,6 +50,7 @@ const GeolocationSpeed: React.FC = () => {
     }
 
     let watchId: number;
+    let previousLocation: Location | null = null;
 
     const successCallback = (position: GeolocationPosition) => {
       const newLocation: Location = {
@@ -52,10 +67,24 @@ const GeolocationSpeed: React.FC = () => {
         newSpeed = 'Speed not available';
       }
 
+      // Calculate distance if we have a previous location
+      let newDistance = state.distance;
+      if (previousLocation) {
+        const distance = haversineDistance(
+          previousLocation.latitude,
+          previousLocation.longitude,
+          newLocation.latitude,
+          newLocation.longitude
+        );
+        newDistance += distance;
+      }
+      previousLocation = newLocation; // Update previous location
+
       setState(prevState => ({
         ...prevState,
         location: newLocation,
         speed: newSpeed,
+        distance: newDistance, // Update total distance
       }));
     };
 
@@ -74,7 +103,7 @@ const GeolocationSpeed: React.FC = () => {
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, []);
+  }, [state.distance]); // Include distance as dependency
 
   return (
     <div>
@@ -88,6 +117,7 @@ const GeolocationSpeed: React.FC = () => {
           <p>Accuracy: {state.location.accuracy.toFixed(2)} meters</p>
           <p>Accuracy Interpretation: {interpretAccuracy(state.location.accuracy)}</p>
           <p>Speed: {state.speed !== null ? `${state.speed} km/h` : 'Calculating...'}</p>
+          <p>Distance Walked: {state.distance.toFixed(2)} km</p> {/* Display total distance */}
         </div>
       ) : (
         <p>Loading location data...</p>
