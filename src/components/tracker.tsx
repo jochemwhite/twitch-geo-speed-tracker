@@ -15,6 +15,13 @@ interface GeolocationState {
   error: string | null;
 }
 
+const interpretAccuracy = (accuracy: number): string => {
+  if (accuracy <= 5) return 'Excellent (likely outdoors with clear sky view)';
+  if (accuracy <= 20) return 'Good (likely outdoors)';
+  if (accuracy <= 100) return 'Moderate (might be indoors or in an urban area)';
+  return 'Poor (likely indoors or obstructed)';
+};
+
 const GeolocationSpeed: React.FC = () => {
   const [state, setState] = useState<GeolocationState>({
     location: null,
@@ -39,7 +46,6 @@ const GeolocationSpeed: React.FC = () => {
 
       let newSpeed: Speed = null;
       if (position.coords.speed !== null) {
-        // Convert speed from m/s to km/h
         const speedKmh = position.coords.speed * 3.6;
         newSpeed = parseFloat(speedKmh.toFixed(2));
       } else {
@@ -79,7 +85,8 @@ const GeolocationSpeed: React.FC = () => {
         <div>
           <p>Latitude: {state.location.latitude}</p>
           <p>Longitude: {state.location.longitude}</p>
-          <p>Accuracy: {state.location.accuracy} meters</p>
+          <p>Accuracy: {state.location.accuracy.toFixed(2)} meters</p>
+          <p>Accuracy Interpretation: {interpretAccuracy(state.location.accuracy)}</p>
           <p>Speed: {state.speed !== null ? `${state.speed} km/h` : 'Calculating...'}</p>
         </div>
       ) : (
