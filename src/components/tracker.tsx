@@ -23,8 +23,9 @@ const WalkingSpeedTracker: React.FC = () => {
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude, speed } = position.coords;
+        const speedKmph = speed !== null ? speed * 3.6 : 0; // Convert m/s to km/h
         setTrackingData({
-          speed: speed !== null ? speed : 0,
+          speed: speed !== null ? speedKmph : 0,
           position: { latitude, longitude },
         });
 
@@ -44,7 +45,7 @@ const WalkingSpeedTracker: React.FC = () => {
   return (
     <div>
       <h2>Walking Speed and Location Tracker</h2>
-      <p>Current walking speed: {trackingData.speed.toFixed(2)} m/s</p>
+      <p>Current walking speed: {trackingData.speed.toFixed(2)} km/h</p>
       <p>
         Current location: Latitude {trackingData.position.latitude.toFixed(6)}, 
         Longitude {trackingData.position.longitude.toFixed(6)}
