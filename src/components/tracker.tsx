@@ -34,7 +34,7 @@ const WalkingSpeedTracker: React.FC = () => {
         setError(`Geolocation error: ${err.message}`);
         console.error('Geolocation error:', err);
       },
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
