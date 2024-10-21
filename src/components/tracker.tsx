@@ -1,57 +1,91 @@
-'use client'
 import React, { useState, useEffect } from 'react';
-import axios, { AxiosError } from 'axios';
 
-interface Position {
+interface Location {
   latitude: number;
   longitude: number;
+  accuracy: number;
 }
 
-interface TrackingData {
-  speed: number;
-  position: Position;
+type Speed = number | 'Speed not available' | null;
+
+interface GeolocationState {
+  location: Location | null;
+  speed: Speed;
+  error: string | null;
 }
 
-const WalkingSpeedTracker: React.FC = () => {
-  const [trackingData, setTrackingData] = useState<TrackingData>({
-    speed: 0,
-    position: { latitude: 0, longitude: 0 },
+const GeolocationSpeed: React.FC = () => {
+  const [state, setState] = useState<GeolocationState>({
+    location: null,
+    speed: null,
+    error: null,
   });
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude, speed } = position.coords;
-        const speedKmph = speed !== null ? speed * 3.6 : 0; // Convert m/s to km/h
-        setTrackingData({
-          speed: speed !== null ? speedKmph : 0,
-          position: { latitude, longitude },
-        });
+    if (!navigator.geolocation) {
+      setState(prevState => ({ ...prevState, error: 'Geolocation is not supported by your browser' }));
+      return;
+    }
 
-      },
-      (err) => {
-        setError(`Geolocation error: ${err.message}`);
-        console.error('Geolocation error:', err);
-      },
-      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-    );
+    let watchId: number;
 
-    return () => navigator.geolocation.clearWatch(watchId);
+    const successCallback = (position: GeolocationPosition) => {
+      const newLocation: Location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      };
+
+      let newSpeed: Speed = null;
+      if (position.coords.speed !== null) {
+        // Convert speed from m/s to km/h
+        const speedKmh = position.coords.speed * 3.6;
+        newSpeed = parseFloat(speedKmh.toFixed(2));
+      } else {
+        newSpeed = 'Speed not available';
+      }
+
+      setState(prevState => ({
+        ...prevState,
+        location: newLocation,
+        speed: newSpeed,
+      }));
+    };
+
+    const errorCallback = (error: GeolocationPositionError) => {
+      setState(prevState => ({ ...prevState, error: `ERROR(${error.code}): ${error.message}` }));
+    };
+
+    const options: PositionOptions = {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0,
+    };
+
+    watchId = navigator.geolocation.watchPosition(successCallback, errorCallback, options);
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
   }, []);
-
-
 
   return (
     <div>
-      <h2>Walking Speed and Location Tracker</h2>
-      <p>Current walking speed: {trackingData.speed.toFixed(2)} km/h</p>
-      <p>
-        Current location: Latitude {trackingData.position.latitude.toFixed(6)}, 
-        Longitude {trackingData.position.longitude.toFixed(6)}
-      </p>
+      <h2>Geolocation and Speed</h2>
+      {state.error ? (
+        <p>Error: {state.error}</p>
+      ) : state.location ? (
+        <div>
+          <p>Latitude: {state.location.latitude}</p>
+          <p>Longitude: {state.location.longitude}</p>
+          <p>Accuracy: {state.location.accuracy} meters</p>
+          <p>Speed: {state.speed !== null ? `${state.speed} km/h` : 'Calculating...'}</p>
+        </div>
+      ) : (
+        <p>Loading location data...</p>
+      )}
     </div>
   );
 };
 
-export default WalkingSpeedTracker;
+export default GeolocationSpeed;
