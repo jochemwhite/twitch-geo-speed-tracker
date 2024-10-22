@@ -7,7 +7,7 @@ export default function Home() {
 
   return (
     <main className="flex h-screen flex-col justify-end items-end bg-transparent text-white">
-      <div className="w-full h-8 bg-black opacity-45 flex items-center justify-between px-2">
+      <div className="w-full h-8 bg-black opacity-80 flex items-center justify-between px-2">
         <StatComponent name="Place" value={place ? place : "Unknown"} />
         <StatComponent name="Temperature" value={Temperature ? Temperature + "°C" : "Unknown"} />
         <StatComponent name="Weather" value={Weather ? Weather : "Unknown"} />
