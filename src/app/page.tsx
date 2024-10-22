@@ -25,7 +25,7 @@ interface Statsprop {
 
 function StatComponent({ name, value }: Statsprop) {
   return (
-    <div className="flex  ">
+    <div className="flex">
       <h4>{name}: </h4>
       <p className="ml-2">{value}</p>
     </div>
