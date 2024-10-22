@@ -149,9 +149,7 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         Geolocation,
       }}
     >
-      <p>
-        Place: {Geolocation.location?.latitude}, {Geolocation.location?.longitude}
-      </p>
+
       {children}
     </OverlayContext.Provider>
   );
