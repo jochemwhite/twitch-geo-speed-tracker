@@ -6,7 +6,7 @@ export default function Home() {
   const { Geolocation, Temperature, Weather, place } = useGeolocation();
 
   return (
-    <main className="flex h-screen flex-col justify-end items-end">
+    <main className="flex h-screen flex-col justify-end items-end bg-transparent text-white">
       <div className="w-full h-8 bg-black opacity-45 flex items-center justify-between px-2">
         <StatComponent name="Place" value={place ? place : "Unknown"} />
         <StatComponent name="Temperature" value={Temperature ? Temperature + "°C" : "Unknown"} />
