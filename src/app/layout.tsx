@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <OverlayProvider>{children}</OverlayProvider>F
+        <OverlayProvider>{children}</OverlayProvider>
       </body>
     </html>
   );

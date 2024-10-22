@@ -1,8 +1,6 @@
 "use client";
 
-import WalkingSpeedTracker from "@/components/tracker";
 import { useGeolocation } from "@/providers/overlay-provider";
-import Image from "next/image";
 
 export default function Home() {
   const { Geolocation, Temperature, Weather, place } = useGeolocation();
@@ -16,8 +14,6 @@ export default function Home() {
         <StatComponent name="Traveled" value={Geolocation.distance + " km"} />
         <StatComponent name="Speed" value={Geolocation.speed + " km/h"} />
       </div>
-
-      <WalkingSpeedTracker />
     </main>
   );
 }
