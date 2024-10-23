@@ -84,7 +84,7 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         newLocation.latitude,
         newLocation.longitude
       );
-      // newDistance = roundDistance(distance);
+      newDistance = distance;
     }
     previousLocationRef.current = newLocation;
 
