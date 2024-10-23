@@ -155,7 +155,7 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
       <p>
         Place: {Geolocation.location?.latitude}, {Geolocation.location?.longitude}
       </p>
-      <p>Distance: {Geolocation.distance.toFixed(1)} km</p>
+      <p>Distance: {Geolocation.distance} km</p>
       {children}
     </OverlayContext.Provider>
   );
