@@ -24,8 +24,10 @@ interface Location {
 interface GeolocationState {
   location: Location | null;
   speed: Speed;
-  distance: number; // Changed to number instead of string
+  distance: number;
+  totalDistance: number;
   error: string | null;
+  isLoading: boolean;
 }
 
 export const OverlayContext = createContext<OverlayContext | null>(null);
@@ -38,16 +40,13 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
     location: null,
     speed: null,
     distance: 0,
+    totalDistance: 0,
     error: null,
+    isLoading: true
   });
 
   const previousLocationRef = useRef<Location | null>(null);
   const weatherIntervalRef = useRef<NodeJS.Timeout>();
-
-  // Function to round distance to one decimal place
-  const roundDistance = (distanceInKm: number): number => {
-    return Number(distanceInKm.toFixed(1));
-  };
 
   // Memoized weather fetching function
   const fetchWeatherData = useCallback(async (latitude: number, longitude: number) => {
@@ -59,50 +58,77 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         setPlace(weatherData.place);
       }
     } catch (error) {
-      console.error('Failed to fetch weather data:', error);
+      console.error("Failed to fetch weather data:", error);
     }
   }, []);
 
   // Handle location updates
-  const handleLocationUpdate = useCallback((position: GeolocationPosition) => {
-    const newLocation: Location = {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      accuracy: position.coords.accuracy,
-    };
+  const handleLocationUpdate = useCallback(
+    (position: GeolocationPosition) => {
+      const newLocation: Location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      };
 
-    const newSpeed: Speed = position.coords.speed !== null
-      ? parseFloat((position.coords.speed * 3.6).toFixed(2))
-      : "Speed not available";
+      console.debug('New location update:', {
+        coords: newLocation,
+        accuracy: position.coords.accuracy,
+        speed: position.coords.speed
+      });
 
-    // Calculate distance if we have a previous location
-    let newDistance = 0;
-    if (previousLocationRef.current) {
-      const distance = haversineDistance(
-        previousLocationRef.current.latitude,
-        previousLocationRef.current.longitude,
-        newLocation.latitude,
-        newLocation.longitude
-      );
-      newDistance = distance;
-    }
-    previousLocationRef.current = newLocation;
+      const newSpeed: Speed = position.coords.speed !== null 
+        ? parseFloat((position.coords.speed * 3.6).toFixed(2)) 
+        : "Speed not available";
 
-    setGeolocation(prev => ({
-      ...prev,
-      location: newLocation,
-      speed: newSpeed,
-      distance: newDistance,
-    }));
+      // Calculate distance if we have a previous location
+      let newDistance = 0;
+      if (previousLocationRef.current) {
+        const distance = haversineDistance(
+          previousLocationRef.current.latitude,
+          previousLocationRef.current.longitude,
+          newLocation.latitude,
+          newLocation.longitude
+        );
 
-    // Fetch weather data immediately when location updates
-    fetchWeatherData(newLocation.latitude, newLocation.longitude);
-  }, [fetchWeatherData]);
+        // Only update if movement is more than 5 meters and accuracy is good
+        if (distance > 0.005 && position.coords.accuracy < 20) {
+          newDistance = distance;
+          previousLocationRef.current = newLocation;
+
+          setGeolocation((prev) => ({
+            ...prev,
+            location: newLocation,
+            speed: newSpeed,
+            distance: newDistance,
+            totalDistance: prev.totalDistance + newDistance,
+            isLoading: false
+          }));
+
+          fetchWeatherData(newLocation.latitude, newLocation.longitude);
+        }
+      } else {
+        // First location update
+        previousLocationRef.current = newLocation;
+        setGeolocation((prev) => ({
+          ...prev,
+          location: newLocation,
+          speed: newSpeed,
+          isLoading: false
+        }));
+      }
+    },
+    [fetchWeatherData]
+  );
 
   // Set up geolocation watching
   useEffect(() => {
     if (!navigator.geolocation) {
-      setGeolocation(prev => ({ ...prev, error: "Geolocation is not supported" }));
+      setGeolocation((prev) => ({ 
+        ...prev, 
+        error: "Geolocation is not supported",
+        isLoading: false 
+      }));
       return;
     }
 
@@ -114,7 +140,11 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
 
     const watchId = navigator.geolocation.watchPosition(
       handleLocationUpdate,
-      error => setGeolocation(prev => ({ ...prev, error: `ERROR(${error.code}): ${error.message}` })),
+      (error) => setGeolocation((prev) => ({ 
+        ...prev, 
+        error: `ERROR(${error.code}): ${error.message}`,
+        isLoading: false 
+      })),
       options
     );
 
@@ -129,10 +159,7 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
 
     if (Geolocation.location) {
       weatherIntervalRef.current = setInterval(() => {
-        fetchWeatherData(
-          Geolocation.location!.latitude,
-          Geolocation.location!.longitude
-        );
+        fetchWeatherData(Geolocation.location!.latitude, Geolocation.location!.longitude);
       }, 10 * 60 * 1000); // 10 minutes
     }
 
@@ -152,10 +179,20 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         Geolocation,
       }}
     >
-      <p>
-        Place: {Geolocation.location?.latitude}, {Geolocation.location?.longitude}
-      </p>
-      <p>Distance: {Geolocation.distance} km</p>
+      {Geolocation.isLoading ? (
+        <p>Loading location...</p>
+      ) : Geolocation.error ? (
+        <p>Error: {Geolocation.error}</p>
+      ) : (
+        <>
+          <p>
+            Place: {Geolocation.location?.latitude.toFixed(6)}, {Geolocation.location?.longitude.toFixed(6)}
+          </p>
+          <p>Speed: {typeof Geolocation.speed === 'number' ? `${Geolocation.speed} km/h` : Geolocation.speed}</p>
+          <p>Current segment: {Geolocation.distance.toFixed(3)} km</p>
+          <p>Total distance: {Geolocation.totalDistance.toFixed(3)} km</p>
+        </>
+      )}
       {children}
     </OverlayContext.Provider>
   );
@@ -169,15 +206,26 @@ export function useGeolocation(): OverlayContext {
   return context;
 }
 
-const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const toRad = (value: number) => (value * Math.PI) / 180;
-  const R = 6371; // Earth's radius in km
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  // Validate inputs
+  if (!isFinite(lat1) || !isFinite(lon1) || !isFinite(lat2) || !isFinite(lon2)) {
+    console.error('Invalid coordinates provided to haversineDistance');
+    return 0;
+  }
+
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+  
   const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c; // Returns distance in kilometers
+}
+
+function toRadians(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}
