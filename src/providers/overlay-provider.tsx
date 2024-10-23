@@ -230,11 +230,4 @@ function toRadians(degrees: number): number {
   return degrees * (Math.PI / 180);
 }
 
-function formatDistance(distance: number): string {
-  if (distance < 0.1) {
-    // For very small distances, show in meters
-    return `${(distance * 1000).toFixed(0)}m`;
-  }
-  // For larger distances, show in km with one decimal
-  return `${distance.toFixed(1)}km`;
-}
+
