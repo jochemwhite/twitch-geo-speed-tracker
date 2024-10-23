@@ -11,7 +11,7 @@ export default function Home() {
         <StatComponent name="Place" value={place ? place : "Unknown"} />
         <StatComponent name="Temperature" value={Temperature ? Temperature + "°C" : "Unknown"} />
         <StatComponent name="Weather" value={Weather ? Weather : "Unknown"} />
-        <StatComponent name="Traveled" value={Geolocation.distance + " km"} />
+        <StatComponent name="Traveled" value={Geolocation.totalDistance.toFixed(1) + " km"} />
         <StatComponent name="Speed" value={Geolocation.speed + " km/h"} />
       </div>
     </main>

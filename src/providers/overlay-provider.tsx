@@ -179,21 +179,20 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         Geolocation,
       }}
     >
-      {Geolocation.isLoading ? (
+      {/* {Geolocation.isLoading ? (
         <p>Loading location...</p>
       ) : Geolocation.error ? (
         <p>Error: {Geolocation.error}</p>
       ) : (
-        <>
-          <p>
-            Place: {Geolocation.location?.latitude.toFixed(6)}, {Geolocation.location?.longitude.toFixed(6)}
-          </p>
-          <p>Speed: {typeof Geolocation.speed === 'number' ? `${Geolocation.speed} km/h` : Geolocation.speed}</p>
-          <p>Current segment: {Geolocation.distance.toFixed(1)} km</p>
-          <p>Total distance: {Geolocation.totalDistance.toFixed(1)} km</p>
-          <p>raw: ${Geolocation.totalDistance}</p>
-        </>
-      )}
+        // <>
+        //   <p>
+        //     Place: {Geolocation.location?.latitude.toFixed(6)}, {Geolocation.location?.longitude.toFixed(6)}
+        //   </p>
+        //   <p>Speed: {typeof Geolocation.speed === 'number' ? `${Geolocation.speed} km/h` : Geolocation.speed}</p>
+        //   <p>Total distance: {Geolocation.totalDistance.toFixed(1)} km</p>
+        //   <p>raw: ${Geolocation.totalDistance}</p>
+        // </>
+      )} */}
       {children}
     </OverlayContext.Provider>
   );
