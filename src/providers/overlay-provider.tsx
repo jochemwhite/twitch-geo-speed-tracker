@@ -189,8 +189,9 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
             Place: {Geolocation.location?.latitude.toFixed(6)}, {Geolocation.location?.longitude.toFixed(6)}
           </p>
           <p>Speed: {typeof Geolocation.speed === 'number' ? `${Geolocation.speed} km/h` : Geolocation.speed}</p>
-          <p>Current segment: {Geolocation.distance.toFixed(3)} km</p>
-          <p>Total distance: {Geolocation.totalDistance.toFixed(3)} km</p>
+          <p>Current segment: {Geolocation.distance.toFixed(1)} km</p>
+          <p>Total distance: {Geolocation.totalDistance.toFixed(1)} km</p>
+          <p>raw: ${Geolocation.totalDistance}</p>
         </>
       )}
       {children}
@@ -228,4 +229,13 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 
 function toRadians(degrees: number): number {
   return degrees * (Math.PI / 180);
+}
+
+function formatDistance(distance: number): string {
+  if (distance < 0.1) {
+    // For very small distances, show in meters
+    return `${(distance * 1000).toFixed(0)}m`;
+  }
+  // For larger distances, show in km with one decimal
+  return `${distance.toFixed(1)}km`;
 }
