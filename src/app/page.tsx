@@ -7,7 +7,7 @@ export default function Home() {
 
   return (
     <main className="h-screen relative">
-      <div className="absolute bottom-0 w-full h-8 bg-black opacity-80 grid grid-cols-6 ">
+      <div className="absolute bottom-0 w-full h-8 bg-black opacity-80 grid grid-cols-6 text-white ">
         <StatComponent name="Place" value={place ? place : "Unknown"} />
         <StatComponent name="Temperature" value={Temperature ? Temperature + "°C" : "Unknown"} />
         <StatComponent name="Weather" value={Weather ? Weather : "Unknown"} />
