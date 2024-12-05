@@ -51,12 +51,6 @@ interface WeatherData {
 export async function getWeatherData(lat: number, lon: number) {
   const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${env.OPENWEATHERMAP_API_KEY}&units=metric`;
 
-  const time = new Date().getTime();
-  
-  console.log(`Fetching weather data from ${url} at ${time}`);
-
-
-
 
   try {
     const response = await axios.get<WeatherData>(url);
@@ -67,6 +61,7 @@ export async function getWeatherData(lat: number, lon: number) {
       temperature: data.main.temp,
       weather: data.weather[0].description,
       weatherIcon: `http://openweathermap.org/img/w/${data.weather[0].icon}.png`,
+      timezone: data.timezone,
     };
   } catch (error) {
     console.error("Error fetching weather data:", error);

@@ -1,5 +1,6 @@
 "use client";
 import { getWeatherData } from "@/actions";
+import { NapiUpdateInfo } from "next/dist/build/swc/generated-native";
 import { useEffect, createContext, useState, useContext, useRef } from "react";
 
 interface OverlayProviderProps {
@@ -11,6 +12,7 @@ interface OverlayContext {
   Temperature: number | undefined;
   Weather: string | undefined;
   Geolocation: GeolocationState;
+  currentTime: string | null;
 }
 
 type Speed = number | null;
@@ -28,6 +30,8 @@ interface GeolocationState {
   totalDistance: number;
   error: string | null;
   isLoading: boolean;
+  timezone: number | null;
+  currentTime: string | null;
 }
 
 export const OverlayContext = createContext<OverlayContext | null>(null);
@@ -36,6 +40,7 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
   const [place, setPlace] = useState<string>();
   const [Temperature, setTemperature] = useState<number>();
   const [Weather, setWeather] = useState<string>();
+  const [currentTime, setCurrentTime] = useState("");
   const [Geolocation, setGeolocation] = useState<GeolocationState>({
     location: null,
     speed: null,
@@ -43,6 +48,8 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
     totalDistance: 0,
     error: null,
     isLoading: true,
+    timezone: null,
+    currentTime: null,
   });
 
   const previousLocationRef = useRef<Location | null>(null);
@@ -58,6 +65,10 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         setTemperature(Math.ceil(weatherData.temperature * 10) / 10);
         setWeather(weatherData.weather);
         setPlace(weatherData.place);
+        setGeolocation((prev) => ({
+          ...prev,
+          timezone: weatherData.timezone,
+        }));
       }
     } catch (error) {
       console.error("Failed to fetch weather data:", error);
@@ -166,6 +177,25 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
     }
   }, [Geolocation.location]);
 
+  useEffect(() => {
+    const updateCurrentTime = () => {
+      const now = new Date();
+      const timezoneOffsetInMilliseconds = Geolocation.timezone ? Geolocation.timezone : now.getTimezoneOffset()
+      const localTime = new Date(now.getTime() + timezoneOffsetInMilliseconds);
+      const formattedTime = new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(localTime);
+
+      setCurrentTime(formattedTime);
+    };
+
+    updateCurrentTime(); // Update time immediately on mount
+    const interval = setInterval(updateCurrentTime, 1000); // Update every second
+
+    return () => clearInterval(interval); // Clean up on unmount
+  }, [Geolocation.timezone]);
+
   return (
     <OverlayContext.Provider
       value={{
@@ -173,6 +203,7 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         Temperature,
         Weather,
         Geolocation,
+        currentTime,
       }}
     >
       {children}
