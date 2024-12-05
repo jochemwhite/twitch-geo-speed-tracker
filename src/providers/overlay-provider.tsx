@@ -1,6 +1,6 @@
 "use client";
 import { getWeatherData } from "@/actions";
-import { useEffect, createContext, useState, useContext, useRef, useCallback } from "react";
+import { useEffect, createContext, useState, useContext, useRef } from "react";
 
 interface OverlayProviderProps {
   children: React.ReactNode;
@@ -49,78 +49,67 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
   const weatherIntervalRef = useRef<NodeJS.Timeout>();
 
   // Memoized weather fetching function
-  const fetchWeatherData = useCallback(async (latitude: number, longitude: number) => {
+  const fetchWeatherData = async (latitude: number, longitude: number) => {
     console.log(`Fetching weather data from ${latitude}, ${longitude}`);
 
     try {
       const weatherData = await getWeatherData(latitude, longitude);
       if (weatherData) {
-        setTemperature(weatherData.temperature);
+        setTemperature(Math.ceil(weatherData.temperature * 10) / 10);
         setWeather(weatherData.weather);
         setPlace(weatherData.place);
       }
     } catch (error) {
       console.error("Failed to fetch weather data:", error);
     }
-  }, []);
+  };
 
   // Handle location updates
-  const handleLocationUpdate = useCallback(
-    (position: GeolocationPosition) => {
-      const newLocation: Location = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-      };
+  const handleLocationUpdate = (position: GeolocationPosition) => {
+    const newLocation: Location = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+    };
 
-      console.debug("New location update:", {
-        coords: newLocation,
-        accuracy: position.coords.accuracy,
-        speed: position.coords.speed,
-      });
+    const newSpeed: Speed = position.coords.speed !== null ? parseFloat((position.coords.speed * 3.6).toFixed(2)) : 0;
 
-      const newSpeed: Speed = position.coords.speed !== null ? parseFloat((position.coords.speed * 3.6).toFixed(2)) : 0;
+    // Calculate distance if we have a previous location
+    let newDistance = 0;
+    if (previousLocationRef.current) {
+      const distance = haversineDistance(
+        previousLocationRef.current.latitude,
+        previousLocationRef.current.longitude,
+        newLocation.latitude,
+        newLocation.longitude
+      );
 
-      // Calculate distance if we have a previous location
-      let newDistance = 0;
-      if (previousLocationRef.current) {
-        const distance = haversineDistance(
-          previousLocationRef.current.latitude,
-          previousLocationRef.current.longitude,
-          newLocation.latitude,
-          newLocation.longitude
-        );
-
-        // Only update if movement is more than 5 meters and accuracy is good
-        if (distance > 0.005 && position.coords.accuracy < 20) {
-          newDistance = distance;
-          previousLocationRef.current = newLocation;
-
-          setGeolocation((prev) => ({
-            ...prev,
-            location: newLocation,
-            speed: newSpeed,
-            distance: newDistance,
-            totalDistance: prev.totalDistance + newDistance,
-            isLoading: false,
-          }));
-        }
-      } else {
-        // First location update
+      // Only update if movement is more than 5 meters and accuracy is good
+      if (distance > 0.005 && position.coords.accuracy < 20) {
+        newDistance = distance;
         previousLocationRef.current = newLocation;
+
         setGeolocation((prev) => ({
           ...prev,
           location: newLocation,
           speed: newSpeed,
+          distance: newDistance,
+          totalDistance: prev.totalDistance + newDistance,
           isLoading: false,
         }));
       }
-
-      // Fetch weather data when location updates
-      fetchWeatherData(newLocation.latitude, newLocation.longitude);
-    },
-    [fetchWeatherData]
-  );
+    } else {
+      // First location update
+      previousLocationRef.current = newLocation;
+      setGeolocation((prev) => ({
+        ...prev,
+        location: newLocation,
+        speed: newSpeed,
+        isLoading: false,
+      }));
+      console.debug("Location update:", newLocation, newSpeed, newDistance);
+    }
+  };
 
   // Set up geolocation watching
   useEffect(() => {
@@ -155,11 +144,13 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
 
   // Set up weather update interval
   useEffect(() => {
+    console.log("Geolocation updated:", Geolocation);
     if (Geolocation.location) {
       // Clear any existing interval
-      if (weatherIntervalRef.current) {
-        clearInterval(weatherIntervalRef.current);
-      }
+      if (weatherIntervalRef.current) return;
+
+      // Fetch weather data immediately
+      fetchWeatherData(Geolocation.location.latitude, Geolocation.location.longitude);
 
       // Set up new interval to fetch weather data every 15 minutes
       weatherIntervalRef.current = setInterval(() => {
@@ -173,7 +164,7 @@ export const OverlayProvider: React.FC<OverlayProviderProps> = ({ children }) =>
         }
       };
     }
-  }, [Geolocation.location, fetchWeatherData]);
+  }, [Geolocation.location]);
 
   return (
     <OverlayContext.Provider
